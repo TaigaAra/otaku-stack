@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OtakuStack - Your Manga Collection Manager</title>
+    <meta
+      name="description"
+      content="Manage your manga collection with OtakuStack. Search, track, and organize your favorite manga!"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1357.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link
+      rel="icon"
+      href="/assets/logos/otakustacklogo.ico"
+      type="image/x-icon"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Josefin+Sans&family=Oswald:wght@600&family=Jersey+10&family=Quicksand:wght@300&family=Montserrat&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Navigation bar -->
+    <!-- Contains logo, search bar, and user menu -->
+    <nav class="navbar">
+      <div class="navbar-left">
+        <a href="#" class="logo">
+          <img src="/assets/logos/home-icon.png" alt="Home" />
+        </a>
+      </div>
+      <div class="navbar-right">
+        <div class="search-container">
+          <input type="text" class="search-bar" placeholder="Search..." />
+          <button class="search-icon">
+            <img src="/assets/logos/search-icon.png" alt="Search" />
+          </button>
+          <div id="loading-indicator" style="display: none">LOADING ...</div>
+        </div>
+        <div class="user-menu">
+          <a href="#" class="user-icon">
+            <img src="/assets/logos/user-icon.png" alt="User" />
+          </a>
+          <div class="user-dropdown">
+            <button id="login-btn">Login</button>
+            <button id="logout-btn" style="display: none">Logout</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Notification bar for user messages -->
+    <!-- Contains messages for login/logout success, errors, etc. -->
+    <div id="notification-bar" class="notification-bar"></div>
+
+    <!-- Login modal for user authentication -->
+    <!-- Contains fields for username and password -->
+    <div id="login-modal" class="modal">
+      <div class="modal-content">
+        <form id="login-form">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" required />
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required />
+          <button type="submit">Login</button>
+        </form>
+      </div>
+    </div>
+    <div id="new-password-modal" class="modal">
+      <div class="modal-content">
+        <h2>Set a New Password</h2>
+        <form id="new-password-form">
+          <label for="new-password">New Password:</label>
+          <input
+            type="text"
+            id="new-password"
+            name="new-password"
+            placeholder="Enter your new password"
+            required
+          />
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <!-- Contains the main title and background image -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <h1>OTAKU STACK</h1>
+      </div>
+    </section>
+
+    <!-- Sort/Search -->
+    <!-- Contains dropdown for sorting and search bar for filtering manga -->
+    <section class="sort-search-section">
+      <div class="sort-container">
+        <label for="sort-dropdown">Sorted:</label>
+        <select id="sort-dropdown">
+          <option value="alphabetical">Alphabetical</option>
+          <option value="highest-chapter">Highest Chapter Count</option>
+          <option value="lowest-chapter">Lowest Chapter Count</option>
+          <option value="status">Status: Ongoing</option>
+          <option value="unread-progress">Unread Progress</option>
+        </select>
+      </div>
+      <div class="search-container">
+        <label for="collection-search">Search:</label>
+        <input
+          type="text"
+          id="collection-search"
+          placeholder="Search your collection..."
+        />
+      </div>
+    </section>
+
+    <!-- Welcome section -->
+    <!-- Contains a brief introduction to the project and its purpose -->
+    <section id="welcome-section" class="welcome-section">
+      <div class="welcome-content">
+        <span class="rotating-text-1">Welcome back.</span>
+        <span class="rotating-text-2"
+          >Your reading list has evolved into a cry for help.</span
+        >
+        <div class="welcome-maintext">
+          <p class="welcome-text-box">
+            <span class="break-text">🔹Why Does This Exist?</span>
+            <br />You may be thinking, aren't there a hundred other manga
+            trackers out there? Nope...
+            <span class="clear-text">(don't look for them).</span>
+            Ok maybe. But this one? This one exists because my friend exists
+            <span class="clear-text">(yes I have one.. he's mine -_-)</span> and
+            he "needed" a secure way to log the 1500th series he's read this
+            week.
+          </p>
+          <p class="welcome-text-box">
+            <span class="break-text">🔹I Have Too Much Free Time</span>
+            <br />So, naturally, I built a full-blown cloud-powered tracking
+            platform
+            <span class="clear-text">(Ignore the self glazing).</span> But, it
+            works, it looks decent, and it gave me an excuse to mess with more
+            AWS services than any personal project should.
+          </p>
+          <p class="welcome-text-box">
+            <span class="break-text">🔹I Have Wasted Your Time</span>
+            <br />So whether you're here to actually track manga
+            <span class="clear-text"
+              >(get away, my wallet can't handle the bandwidth)</span
+            >, or indulge me in my self glazing, you're welcome here. Just don’t
+            ask for more features—I want to sleep.
+          </p>
+        </div>
+        <div class="welcome-external-container">
+          <a
+            href="https://github.com/taigaara"
+            target="_blank"
+            class="github-link"
+          >
+            <img
+              src="/assets/logos/github.png"
+              alt="GitHub"
+              class="github-icon"
+            />
+          </a>
+          <a
+            href="https://taigaaraki.com"
+            target="_blank"
+            class="portfolio-link"
+          >
+            <img
+              src="/assets/logos/Taiga_Araki.png"
+              alt="TaigaAraki"
+              class="TaigaAraki-icon"
+            />
+          </a>
+          <a
+            href="https://www.linkedin.com/in/taigamossberg/"
+            target="_blank"
+            class="linkedin-link"
+          >
+            <img
+              src="/assets/logos/linkedin.png"
+              alt="LinkedIn"
+              class="LinkedIn-icon"
+            />
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manga list container -->
+    <!-- Contains the list of manga with options to add, edit, and delete -->
+    <section id="manga-list"></section>
+
+    <!-- Delete confirmation modal -->
+    <!-- Contains confirmation message for deleting manga -->
+    <div id="delete-confirm-modal" class="delete-modal" style="display: none">
+      <div class="delete-modal-content">
+        <p id="delete-confirm-message">
+          Are you sure you want to delete this manga?
+        </p>
+        <button id="delete-confirm-yes" class="delete-confirm-btn">Yes</button>
+        <button id="delete-confirm-no" class="delete-confirm-btn">No</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <!-- Contains copyright information and data source -->
+    <footer class="footer">
+      <p>
+        &copy; 2025 Otaku Stack. All Rights Reserved. Data provided by
+        <a href="https://mangadex.org" target="_blank" rel="noopener noreferrer"
+          >MangaDex</a
+        >.
+      </p>
+    </footer>
+  </body>
+</html>
