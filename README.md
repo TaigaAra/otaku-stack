@@ -19,3 +19,6 @@ https://otakustack.net
 - Automatic background updates on manga status & chapter count
 - Seamless MangaDex search via custom proxy
 - Fully serverless infrastructure using AWS
+
+## Screenshots
+![Screenshot](./screenshots/OtakuStack-Homepage.png) ![Screenshot](./screenshots/OtakuStack-Collection.png)
