@@ -2,7 +2,7 @@
 
 Welcome to the Otaku Stack — a fully serverless web app designed to let manga fans browse, search, and save manga from the MangaDex API
 
-![Screenshot](./screenshots/homepage.png)
+![Screenshot](./screenshots/OtakuStack-Diagram.png)
 
 ## Live Site
 https://otakustack.net
