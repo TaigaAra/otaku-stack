@@ -10,13 +10,13 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 ![Screenshot](./screenshots/OtakuStack-Diagram.png)
 
 ## Features
-- **Authenticated User Login & Persistent Data:** Secure sign-in through AWS Cognito ensures your collection stays yours. User sessions are managed seamlessly, allowing you to access your manga shelf anytime, anywhere.
-- **Personal Manga Collection Management:** Save titles you love, organize them in your own collection, and update attributes like your current chapter or where you're reading — because tracking multiple series shouldn’t require a spreadsheet.
-- **Automatic Background Updates:** Manga details like chapter count and status (ongoing, hiatus, etc.) are updated regularly using scheduled Lambda functions. You won’t need to manually refresh to stay current.
-- **Streamlined MangaDex Search:** Instantly search MangaDex through a custom Lambda proxy that handles request formatting and responses — giving users a fast, clean experience without hitting any CORS issues.
-- **Fully Serverless Architecture:** Every component runs serverlessly using AWS services like Lambda, API Gateway, S3, and DynamoDB. It’s scalable, efficient, and lets us focus on features — not uptime.
-- **Cover Image Handling:** Manga covers are cached and stored intelligently between two S3 buckets — one for permanent saved covers and another for temporary search previews — keeping things snappy and cost-effective.
-- **Custom Domain with CDN** The site is hosted on https://otakustack.net, delivered via CloudFront, with SSL via ACM and DNS powered by Route53. In short: it’s fast, secure, and has a real home on the internet.
+- **Authenticated User Login & Persistent Data:** Secure sign-in through AWS Cognito ensures your collection stays yours. 
+- **Personal Manga Collection Management:** Save titles you love, organize them in your own collection, and update attributes like your current chapter or where you're reading.
+- **Automatic Background Updates:** Manga details like chapter count and status (ongoing, hiatus, etc.) are updated regularly using scheduled Lambda functions.
+- **Streamlined MangaDex Search:** Instantly search MangaDex through a custom Lambda proxy that handles formatting and responses.
+- **Fully Serverless Architecture:** Every component runs serverlessly using AWS services like Lambda, API Gateway, S3, and DynamoDB.
+- **Cover Image Handling:** Manga covers are cached and stored intelligently between two S3 buckets — one for permanent saved covers and another for temporary search previews.
+- **Custom Domain with CDN** Hosted on https://otakustack.net, delivered via CloudFront, with SSL via ACM and DNS powered by Route53.
 
 ## Screenshots
 ![Screenshot](./screenshots/OtakuStack-Homepage.png) ![Screenshot](./screenshots/OtakuStack-Collection.png)
