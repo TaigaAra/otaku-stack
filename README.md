@@ -1,7 +1,7 @@
 # Otaku-Stack
 
 ## Overview
-Welcome to the Otaku Stack - https://otakustack.net — a fully serverless web app designed to let manga fans browse, search, and save manga from the MangaDex API.
+Welcome to Otaku Stack! - https://otakustack.net — A fully serverless web app designed to let manga fans browse, search, and save manga from the MangaDex API.
 You may be thinking, aren't there a hundred other manga trackers out there? Nope... (don't look for them). Ok maybe. But this one? 
 This one exists because my friend exists (yes I have one.. he's mine -_-) and he "needed" a secure way to log the 1500th series he's read this week. 
 So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the self glazing).
