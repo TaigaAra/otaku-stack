@@ -22,24 +22,32 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 ![Screenshot](./screenshots/OtakuStack-Homepage.png) ![Screenshot](./screenshots/OtakuStack-Collection.png)
 
 ## Project Structure
-<pre>otaku-stack/ 
-├── frontend/ 
-│ ├── index.htm 
-│ ├── script.js 
-│ └── style.css 
-├── lambda/ 
-│ ├── add-card.js 
-│ ├── batch-chapter.mjs 
-│ ├── batch-status.mjs 
-│ ├── fetch-manga.js 
-│ ├── remove-card.js 
-│ ├── search-proxy.mjs 
-│ └── update-attributes.js 
-├── screenshots/ 
-│ ├── OtakuStack-Collection.png 
-│ ├── OtakuStack-Diagram.png 
-│ └── OtakuStack-Homepage.png 
-├── LICENSE 
+<pre>otaku-stack/
+├── frontend/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── lambda/
+│   ├── auth/
+│   │   ├── authenticate.js
+│   │   ├── get-aws-credentials.js
+│   │   ├── refresh-tokens.js
+│   │   ├── session-status.js
+│   │   └── otaku-logout.js
+│   ├── manga/
+│   │   ├── add-card.js
+│   │   ├── fetch-manga.js
+│   │   ├── remove-card.js
+│   │   └── update-attributes.js
+│   ├── utils/
+│   │   ├── search-proxy.mjs
+│   │   ├── batch-chapter.mjs
+│   │   └── batch-status.mjs
+├── screenshots/
+│   ├── OtakuStack-Collection.png
+│   ├── OtakuStack-Diagram.png
+│   └── OtakuStack-Homepage.png
+├── LICENSE
 └── README.md</pre>
 
 ## Implementation Details
