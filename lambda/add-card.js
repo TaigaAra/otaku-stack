@@ -3,15 +3,13 @@ const { PutCommand } = require("@aws-sdk/lib-dynamodb");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const fetch = require("node-fetch");
 
-// Initialize AWS SDK v3 clients
-const dynamoDbClient = new DynamoDBClient({ region: "REGION" }); // Replace REGION with your AWS region
-const s3Client = new S3Client({ region: "REGION" }); // Replace REGION with your AWS region
+const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
-    // Validate required fields
     const {
       userId,
       mangaId,
@@ -29,7 +27,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Fetch the cover image
     let s3ImageUrl = null;
     try {
       const response = await fetch(coverUrl, {
@@ -46,18 +43,16 @@ exports.handler = async (event) => {
 
       const buffer = await response.arrayBuffer();
 
-      // Upload the image to S3
       const s3Params = {
-        Bucket: "BUCKET_NAME", // Replace BUCKET_NAME with your S3 bucket name
-        Key: `manga-covers/${mangaId}.jpg`, // Unique key for the image
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: `manga-covers/${mangaId}.jpg`,
         Body: Buffer.from(buffer),
         ContentType: "image/jpeg",
       };
       const s3Command = new PutObjectCommand(s3Params);
       await s3Client.send(s3Command);
 
-      // Construct the S3 URL manually
-      s3ImageUrl = `https://${s3Params.Bucket}.s3.REGION.amazonaws.com/${s3Params.Key}`;
+      s3ImageUrl = `https://${s3Params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Params.Key}`;
     } catch (error) {
       return {
         statusCode: 500,
@@ -65,9 +60,8 @@ exports.handler = async (event) => {
       };
     }
 
-    // Save the manga data to DynamoDB
     const dynamoParams = {
-      TableName: "TABLE_NAME", // Replace TABLE_NAME with your DynamoDB table name
+      TableName: process.env.DYNAMODB_TABLE,
       Item: {
         userId,
         mangaId,

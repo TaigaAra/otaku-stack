@@ -1,20 +1,33 @@
-AWS.config.region = "us-east-2";
+AWS.config.region = "AWS_REGION"; // Replace with your region
 
 // ============================
-//   Cognito Authentication
+//  AWS Credentials Initialization
 // ============================
 
-const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
+async function getUserInfoAndCredentials() {
+  try {
+    const response = await fetch(
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
+      {
+        method: "GET",
+        credentials: "include", // Include cookies in the request
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-// NOTE: These are placeholders with actual values in a secure environment.
-const userPoolId = "User_Pool_ID"; // User Pool ID
-const clientId = "App_Client_ID"; // App Client ID
+    if (!response.ok) {
+      throw new Error("Failed to retrieve user info and credentials.");
+    }
 
-function calculateSecretHash(username) {
-  const secret = "App_Client_Secret"; // App Client Secret
-  const message = username + clientId;
-  const hash = CryptoJS.HmacSHA256(message, secret);
-  return CryptoJS.enc.Base64.stringify(hash);
+    const data = await response.json();
+    const { userId, credentials } = data;
+
+    return { userId, credentials };
+  } catch (error) {
+    return null;
+  }
 }
 
 // ============================
@@ -22,112 +35,25 @@ function calculateSecretHash(username) {
 // ============================
 
 async function signIn(username, password) {
-  const params = {
-    AuthFlow: "USER_PASSWORD_AUTH",
-    ClientId: clientId,
-    AuthParameters: {
-      USERNAME: username,
-      PASSWORD: password,
-      SECRET_HASH: calculateSecretHash(username),
-    },
-  };
-
   try {
-    const data = await cognitoIdentityServiceProvider
-      .initiateAuth(params)
-      .promise();
+    const response = await fetch(
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+        credentials: "include", // Ensure cookies are included
+      }
+    );
 
-    if (data.AuthenticationResult) {
-      // Store tokens in local storage (Disclaimer - This is not secure for production)
-      localStorage.setItem("idToken", data.AuthenticationResult.IdToken);
-      localStorage.setItem(
-        "accessToken",
-        data.AuthenticationResult.AccessToken
-      );
-      localStorage.setItem(
-        "refreshToken",
-        data.AuthenticationResult.RefreshToken
-      );
-
-      showNotification("Login successful!");
-
-      return data.AuthenticationResult; // Contains tokens
-    } else if (data.ChallengeName === "NEW_PASSWORD_REQUIRED") {
-      // Show the new password modal
-      const newPasswordModal = document.getElementById("new-password-modal");
-      const newPasswordForm = document.getElementById("new-password-form");
-      const newPasswordInput = document.getElementById("new-password");
-
-      // Clear the password field
-      newPasswordInput.value = "";
-
-      // Show the modal
-      newPasswordModal.style.display = "flex";
-
-      // Handle form submission
-      return new Promise((resolve, reject) => {
-        newPasswordForm.onsubmit = async (event) => {
-          event.preventDefault(); // Prevent default form submission
-
-          const newPassword = newPasswordInput.value;
-          if (!newPassword) {
-            showNotification(
-              "New password is required to complete login.",
-              "error"
-            );
-            return reject(null);
-          }
-
-          // Respond to the new password challenge
-          const challengeResponse = {
-            ClientId: clientId,
-            ChallengeName: "NEW_PASSWORD_REQUIRED",
-            Session: data.Session,
-            ChallengeResponses: {
-              USERNAME: username,
-              NEW_PASSWORD: newPassword,
-              SECRET_HASH: calculateSecretHash(username),
-            },
-          };
-
-          try {
-            const challengeData = await cognitoIdentityServiceProvider
-              .respondToAuthChallenge(challengeResponse)
-              .promise();
-
-            if (challengeData.AuthenticationResult) {
-              // Store tokens in local storage (Disclaimer - This is not secure for production)
-              localStorage.setItem(
-                "idToken",
-                challengeData.AuthenticationResult.IdToken
-              );
-              localStorage.setItem(
-                "accessToken",
-                challengeData.AuthenticationResult.AccessToken
-              );
-              localStorage.setItem(
-                "refreshToken",
-                challengeData.AuthenticationResult.RefreshToken
-              );
-
-              // Trigger the login success notification
-              showNotification("Password updated and login successful!");
-
-              newPasswordModal.style.display = "none"; // Hide the modal
-              resolve(challengeData.AuthenticationResult); // Contains tokens
-            }
-          } catch (challengeError) {
-            showNotification(
-              "Failed to set new password. Please try again.",
-              "error"
-            );
-            reject(null);
-          }
-        };
-      });
-    } else {
-      return null;
+    if (!response.ok) {
+      throw new Error("Failed to authenticate. Please check your credentials.");
     }
+
+    const data = await response.json();
+
+    showNotification("Login successful!");
+    return data;
   } catch (error) {
     showNotification("Login failed. Please try again.", "error");
     return null;
@@ -162,8 +88,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault(); // Prevent default form submission
 
-    const username = document.getElementById("username").value; // Use Input Validation on Production
-    const password = document.getElementById("password").value; // Use Input Validation on Production
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
 
     const tokens = await signIn(username, password);
 
@@ -173,13 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update button visibility
       document.getElementById("login-btn").style.display = "none";
       document.getElementById("logout-btn").style.display = "block";
-
-      // Fetch user-specific manga cards
-      try {
-        await fetchSavedMangaCards();
-      } catch (error) {
-        alert("Failed to load your manga cards. Please try again later.");
-      }
     }
   });
 });
@@ -192,6 +111,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   mangaList.innerHTML = "<p></p>";
 
   // Update button visibility
+  document.getElementById("manga-list").innerHTML = ""; // Clear all rows and cards
   document.getElementById("login-btn").style.display = "block";
   document.getElementById("logout-btn").style.display = "none";
 });
@@ -200,75 +120,47 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 //   Sign Out Function
 // ============================
 
-function signOut() {
-  // Clear tokens from local storage (Disclaimer - This is not secure for production)
-  localStorage.removeItem("idToken");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-
-  alert("Logged out successfully!");
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const idToken = localStorage.getItem("idToken");
-  const accessToken = localStorage.getItem("accessToken");
-
-  if (idToken && accessToken) {
-    const isValid = await validateToken(accessToken);
-    if (isValid) {
-      document.getElementById("login-btn").style.display = "none";
-      document.getElementById("logout-btn").style.display = "block";
-
-      // Fetch user-specific manga cards
-      try {
-        await fetchSavedMangaCards();
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    } else {
-      localStorage.clear();
-    }
-  } else {
-    document.getElementById("login-btn").style.display = "block";
-    document.getElementById("logout-btn").style.display = "none";
-  }
-});
-
-// ============================
-//   Validate Token Function
-// ============================
-
-async function validateToken(accessToken) {
+async function signOut() {
   try {
-    // Example: Decode the token and check expiration
-    const payload = JSON.parse(atob(accessToken.split(".")[1]));
-    const currentTime = Math.floor(Date.now() / 1000);
-    return payload.exp > currentTime; // Token is valid if not expired
+    const response = await fetch(
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
+      {
+        method: "POST",
+        credentials: "include", // Include cookies in the request
+      }
+    );
+
+    if (response.ok) {
+      showNotification("Logged out successfully!", "success");
+
+      // Clear cookies manually as a fallback
+      document.cookie =
+        "idToken=; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure; Partitioned;";
+      document.cookie =
+        "accessToken=; Max-Age=0; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure; Partitioned;";
+      document.cookie =
+        "refreshToken=; Max-Age=0; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure; Partitioned;";
+
+      // Clear the UI
+      const mangaList = document.getElementById("manga-list");
+      mangaList.innerHTML = ""; // Clear all manga cards from the DOM
+
+      document.getElementById("login-btn").style.display = "block";
+      document.getElementById("logout-btn").style.display = "none";
+
+      // Reset visibility
+      updateVisibilityBasedOnLogin(); // Ensure this function is accessible
+    } else {
+      showNotification("Failed to log out. Please try again.", "error");
+    }
   } catch (error) {
-    return false;
+    // Fallback for network or server errors
+    document.cookie = "idToken=; Max-Age=0; Path=/; Secure; SameSite=None";
+    document.cookie = "accessToken=; Max-Age=0; Path=/; Secure; SameSite=None";
+    document.cookie = "refreshToken=; Max-Age=0; Path=/; Secure; SameSite=None";
+
+    showNotification("An error occurred during logout.", "error");
   }
-}
-
-// ============================
-//   Sign Out Function
-// ============================
-
-function signOut() {
-  // Clear tokens from local storage (Disclaimer - This is not secure for production)
-  localStorage.removeItem("idToken");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-
-  // Trigger the logout success notification
-  showNotification("Logged out successfully!", "success");
-
-  // Clear the manga list
-  const mangaList = document.getElementById("manga-list");
-  mangaList.innerHTML = "<p></p>";
-
-  // Update button visibility
-  document.getElementById("login-btn").style.display = "block";
-  document.getElementById("logout-btn").style.display = "none";
 }
 
 // ============================
@@ -276,32 +168,24 @@ function signOut() {
 // ============================
 
 async function refreshTokens() {
-  const refreshToken = localStorage.getItem("refreshToken");
-  if (!refreshToken) {
-    return null;
-  }
-
-  const params = {
-    AuthFlow: "REFRESH_TOKEN_AUTH",
-    ClientId: clientId,
-    AuthParameters: {
-      REFRESH_TOKEN: refreshToken,
-      SECRET_HASH: calculateSecretHash("demo@otakustack.org"),
-    },
-  };
-
   try {
-    const data = await cognitoIdentityServiceProvider
-      .initiateAuth(params)
-      .promise();
+    const response = await fetch(
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
+      {
+        method: "POST",
+        credentials: "include", // Include cookies in the request
+      }
+    );
 
-    // Update tokens in local storage (Disclaimer - This is not secure for production)
-    localStorage.setItem("idToken", data.AuthenticationResult.IdToken);
-    localStorage.setItem("accessToken", data.AuthenticationResult.AccessToken);
+    if (!response.ok) {
+      throw new Error("Failed to refresh tokens. Please log in again.");
+    }
 
-    return data.AuthenticationResult;
+    const data = await response.json();
+
+    return true; // Indicate success
   } catch (error) {
-    return null;
+    return false; // Indicate failure
   }
 }
 
@@ -310,20 +194,14 @@ async function refreshTokens() {
 // ============================
 
 async function fetchSavedMangaCards() {
-  const idToken = localStorage.getItem("idToken");
-  if (!idToken) {
-    showNotification("You must log in to view your saved cards.", "error");
-    return;
-  }
-
   try {
     const response = await fetch(
-      "API_ENDPOINT", // API Endpoint Placeholder
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
       {
         method: "GET",
+        credentials: "include", // Include cookies in the request
         headers: {
           "Content-Type": "application/json",
-          Authorization: idToken,
         },
       }
     );
@@ -339,7 +217,7 @@ async function fetchSavedMangaCards() {
     // Parse the body field if it exists
     const savedMangaCards = apiResponse.body
       ? JSON.parse(apiResponse.body)
-      : [];
+      : apiResponse; // Fallback to the raw response if body is not present
 
     // Clear the manga list but preserve the template card
     const mangaList = document.getElementById("manga-list");
@@ -361,13 +239,11 @@ async function fetchSavedMangaCards() {
         status: mangaData.status.S,
         title: mangaData.title.S,
       };
+
       addMangaCard(transformedData);
     });
   } catch (error) {
-    showNotification(
-      "Failed to load your manga cards. Please try again later.",
-      "error"
-    );
+    showNotification("Please log in to view your saved manga cards.", "error");
   }
 }
 
@@ -411,24 +287,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Fetch saved manga cards from DynamoDB
   async function fetchSavedMangaCards() {
-    const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-    if (!idToken) {
-      showNotification(
-        "You must log in to view your saved manga cards.",
-        "error"
-      ); // Use notification instead of alert
-      return;
-    }
-
     try {
-      const response = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: idToken,
-        },
-      });
+      const response = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "GET",
+          credentials: "include", // Include cookies in the request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -441,7 +310,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Parse the body field if it exists
       const savedMangaCards = apiResponse.body
         ? JSON.parse(apiResponse.body)
-        : [];
+        : apiResponse; // Fallback to the raw response if body is not present
 
       // Clear the manga list but preserve the template card
       const mangaList = document.getElementById("manga-list");
@@ -467,7 +336,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     } catch (error) {
       showNotification(
-        "Failed to load your manga cards. Please try again later.",
+        "Please log in to view your saved manga cards.",
         "error"
       );
     }
@@ -477,7 +346,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await fetchSavedMangaCards();
 });
 
-const lambdaProxyUrl = "API_ENDPOINT"; // API Endpoint Placeholder
+const lambdaProxyUrl = "API_GATEWAY_URL"; // Replace with your API Gateway URL
 
 // ============================
 //   Dynamic Event Listeners for Manga Card Buttons
@@ -495,21 +364,18 @@ function addEventListeners(card, latestChapter) {
 
   // Function to save updates to the backend
   async function saveUpdate(updateData) {
-    const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-    if (!idToken) {
-      return;
-    }
-
     try {
-      const response = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: idToken,
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+          credentials: "include", // Include cookies in the request
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -518,7 +384,7 @@ function addEventListeners(card, latestChapter) {
 
       const responseData = await response.json();
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error saving update:", error);
     }
   }
 
@@ -603,7 +469,9 @@ function createMangaCard(mangaData) {
   // Add the manga title
   const mangaTitle = document.createElement("h3");
   mangaTitle.classList.add("manga-title");
-  mangaTitle.textContent = mangaData.title || "Unknown Title";
+  mangaTitle.textContent = DOMPurify.sanitize(
+    mangaData.title || "Unknown Title"
+  );
   mangaInfo.appendChild(mangaTitle);
 
   // Add the chapter info with status
@@ -615,20 +483,20 @@ function createMangaCard(mangaData) {
     ? `status-${mangaData.status.toLowerCase()}`
     : "status-unknown";
 
-  chapterInfo.innerHTML = `
-  Latest Update: <span class="latest-chapter">${
-    mangaData.latestChapter || "0"
-  }</span> <span class="manga-status ${statusClass}">${
+  chapterInfo.innerHTML = DOMPurify.sanitize(`
+      Latest Update: <span class="latest-chapter">${
+        mangaData.latestChapter || "0"
+      }</span> <span class="manga-status ${statusClass}">${
     mangaData.status || "Unknown"
   }</span><br />
-  <button class="reset-btn">↻</button>
-  <button class="decrease-btn">−</button>
-  <input type="number" class="read-chapter" value="${
-    mangaData.readChapter || "0"
-  }" min="0" />
-  <button class="increase-btn">+</button>
-  <button class="finish-btn">✓</button>
-`;
+      <button class="reset-btn">↻</button>
+      <button class="decrease-btn">−</button>
+      <input type="number" class="read-chapter" value="${
+        mangaData.readChapter || "0"
+      }" min="0" />
+      <button class="increase-btn">+</button>
+      <button class="finish-btn">✓</button>
+    `);
   mangaInfo.appendChild(chapterInfo);
 
   // Add the platform dropdown and remove button
@@ -756,7 +624,7 @@ async function fetchLatestChapter(mangaId) {
       }
     }
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching latest chapter:", error);
   }
 
   // Fallback to "N/A" if no chapter data is found
@@ -812,6 +680,18 @@ function updateButtonState(button, isInCollection, results) {
 // ============================
 
 async function addMangaCardFromSearch(manga) {
+  // Fetch user info and credentials
+  const userInfo = await getUserInfoAndCredentials();
+  if (!userInfo) {
+    showNotification(
+      "You must log in to add manga to your collection.",
+      "error"
+    );
+    return;
+  }
+
+  const { userId } = userInfo;
+
   // Find the cover_art relationship
   const coverArt = manga.relationships.find((rel) => rel.type === "cover_art");
   let coverUrl = "/assets/backgrounds/error-bg.jpg"; // Default fallback image
@@ -830,9 +710,13 @@ async function addMangaCardFromSearch(manga) {
         coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}`;
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching cover art details:", error);
     }
   } else {
+    console.warn(
+      "Cover art relationship or attributes are missing for manga:",
+      manga
+    );
   }
 
   // Fetch the status from MangaDex
@@ -843,16 +727,6 @@ async function addMangaCardFromSearch(manga) {
   if (!latestChapter || latestChapter === "N/A") {
     latestChapter = await fetchLatestChapter(manga.id);
   }
-
-  const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-  if (!idToken) {
-    return;
-  }
-
-  // Decode the idToken to extract the userId (sub)
-  const tokenParts = idToken.split(".");
-  const payload = JSON.parse(atob(tokenParts[1]));
-  const userId = payload.sub; // Extract the userId from the token
 
   const mangaData = {
     userId: userId,
@@ -865,15 +739,6 @@ async function addMangaCardFromSearch(manga) {
     platform: "Tachimanga", // Default platform
   };
 
-  // Check if the card already exists in the DOM
-  const mangaList = document.getElementById("manga-list");
-  const existingCard = mangaList.querySelector(
-    `.manga-card[data-id="${manga.id}"]`
-  );
-  if (existingCard) {
-    return; // Skip adding the duplicate card
-  }
-
   // Retry logic
   const maxRetries = 3;
   let attempt = 0;
@@ -881,14 +746,17 @@ async function addMangaCardFromSearch(manga) {
 
   while (attempt < maxRetries && !success) {
     try {
-      const response = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(mangaData),
-      });
+      const response = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(mangaData),
+          credentials: "include", // Include cookies in the request
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to add manga card. Status: ${response.status}`);
@@ -955,6 +823,111 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeExistingCards();
 });
 
+const searchBar = document.querySelector(".search-bar");
+const searchContainer = document.querySelector(".search-container");
+const sortSearchSection = document.querySelector(".sort-search-section");
+const welcomeSection = document.querySelector(".welcome-section");
+const mangaList = document.getElementById("manga-list");
+
+if (sortSearchSection) {
+  sortSearchSection.classList.add("hidden"); // Hide the sort-search-section
+}
+if (searchBar) {
+  searchBar.disabled = true;
+  searchBar.placeholder = "Please log in to use the search.";
+  searchBar.value = ""; // Clear the search bar value
+}
+if (mangaList) {
+  mangaList.classList.add("hidden"); // Hide the manga list
+}
+
+async function updateVisibilityBasedOnLogin() {
+  try {
+    const response = await fetch(
+      "API_GATEWAY_URL", // Replace with your API Gateway URL
+      {
+        method: "GET",
+        credentials: "include", // Include cookies in the request
+      }
+    );
+
+    if (response.ok) {
+      const sessionData = await response.json();
+
+      // Parse the body field if it exists
+      const parsedBody = sessionData.body ? JSON.parse(sessionData.body) : {};
+
+      const isValid = parsedBody.isValid;
+
+      if (isValid === true || isValid === "true") {
+        // User is logged in
+        if (searchBar) {
+          searchBar.disabled = false;
+          searchBar.placeholder = "Search for manga...";
+        }
+        if (sortSearchSection) {
+          sortSearchSection.classList.remove("hidden"); // Show the sort-search-section
+        }
+        if (welcomeSection) {
+          welcomeSection.classList.add("hidden"); // Hide the welcome section
+        }
+        if (mangaList) {
+          mangaList.classList.remove("hidden"); // Hide the manga list
+        }
+
+        // Update login/logout button visibility
+        document.getElementById("login-btn").style.display = "none";
+        document.getElementById("logout-btn").style.display = "block";
+
+        // Fetch saved manga cards
+        await fetchSavedMangaCards();
+      } else {
+        // User is not logged in
+        if (searchBar) {
+          searchBar.disabled = true;
+          searchBar.placeholder = "Please log in to use the search.";
+          searchBar.value = ""; // Clear the search bar value
+        }
+        if (sortSearchSection) {
+          sortSearchSection.classList.add("hidden"); // Hide the sort-search-section
+        }
+        if (welcomeSection) {
+          welcomeSection.classList.remove("hidden"); // Show the welcome section
+        }
+        if (mangaList) {
+          mangaList.classList.add("hidden"); // Hide the manga list
+        }
+
+        // Update login/logout button visibility
+        document.getElementById("login-btn").style.display = "block";
+        document.getElementById("logout-btn").style.display = "none";
+      }
+    } else {
+      handleLoggedOutState();
+    }
+  } catch (error) {
+    handleLoggedOutState();
+  }
+}
+
+function handleLoggedOutState() {
+  if (searchBar) {
+    searchBar.disabled = true;
+    searchBar.placeholder = "Please log in to use the search.";
+    searchBar.value = ""; // Clear the search bar value
+  }
+  if (sortSearchSection) {
+    sortSearchSection.classList.add("hidden"); // Hide the sort-search-section
+  }
+  if (welcomeSection) {
+    welcomeSection.classList.remove("hidden"); // Show the welcome section
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateVisibilityBasedOnLogin();
+});
+
 // ============================
 //   DOMContentLoaded Event Listener
 // ============================
@@ -981,38 +954,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================
   //  Update Visibility Based on Login/Logout State
   // ============================
-
-  function updateVisibilityBasedOnLogin() {
-    const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-
-    if (!idToken) {
-      if (searchBar) {
-        searchBar.disabled = true;
-        searchBar.placeholder = "Please log in to use the search.";
-        searchBar.value = ""; // Clear the search bar value
-      }
-      if (sortSearchSection) {
-        sortSearchSection.classList.add("hidden"); // Hide the sort-search-section
-      }
-      if (welcomeSection) {
-        welcomeSection.classList.remove("hidden"); // Show the welcome section
-      }
-    } else {
-      if (searchBar) {
-        searchBar.disabled = false;
-        searchBar.placeholder = "Search for manga...";
-      }
-      if (sortSearchSection) {
-        sortSearchSection.classList.remove("hidden"); // Show the sort-search-section
-      }
-      if (welcomeSection) {
-        welcomeSection.classList.add("hidden"); // Hide the welcome section
-      }
-    }
-  }
-
-  // Initial check on page load
-  updateVisibilityBasedOnLogin();
 
   // Update visibility on login
   document.getElementById("login-btn").addEventListener("click", async () => {
@@ -1043,8 +984,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Update visibility on logout
   document.getElementById("logout-btn").addEventListener("click", () => {
-    // Simulate logout logic here
-    localStorage.removeItem("idToken"); // (Disclaimer - This is not secure for production)
+    signOut();
     updateVisibilityBasedOnLogin();
   });
 
@@ -1056,7 +996,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================
 
   searchBar.addEventListener("input", () => {
-    query = searchBar.value.trim(); // Update the global query variable
+    const query = DOMPurify.sanitize(searchBar.value.trim()); // Update the global query variable
     clearTimeout(debounceTimeout); // Clear the previous timeout
 
     const loadingIndicator = document.getElementById("loading-indicator");
@@ -1079,6 +1019,8 @@ document.addEventListener("DOMContentLoaded", () => {
           lastResults = results;
 
           currentOffset = 5; // Reset the offset for subsequent results
+        } catch (error) {
+          console.error("Error fetching initial search results:", error);
         } finally {
           // Re-enable the search bar and hide the loading indicator
           searchBar.disabled = false;
@@ -1134,7 +1076,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchMangaDexResults(query, offset = 0) {
     try {
-      const apiGatewayUrl = "API_ENDPOINT"; // API Endpoint Placeholder
+      const apiGatewayUrl = "API_GATEWAY_URL"; // Replace with your API Gateway URL
 
       // Construct the URL for the MangaDex API with the offset
       const mangadexApiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(
@@ -1147,6 +1089,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const response = await fetch(requestUrl, {
         method: "GET",
+        credentials: "include", // Include cookies in the request
         headers: {
           "Content-Type": "application/json",
         },
@@ -1208,9 +1151,13 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             }
           } catch (error) {
-            console.error("Error fetching data:", error);
+            console.error("Error fetching cover art details:", error);
           }
         } else {
+          console.warn(
+            "Cover art relationship or attributes are missing for manga:",
+            manga
+          );
         }
 
         // Fetch the latest chapter if lastChapter is missing or null
@@ -1228,7 +1175,7 @@ document.addEventListener("DOMContentLoaded", () => {
               latestChapter = chapterData.data[0].attributes.chapter || "N/A";
             }
           } catch (error) {
-            console.error("Error fetching data:", error);
+            console.error("Error fetching chapter details:", error);
           }
         }
 
@@ -1240,23 +1187,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const buttonClass = isInCollection ? "remove-btn" : "add-btn";
 
         const resultHTML = `
-          <div class="search-result">
-            <img
-              src="${coverUrl}"
-              alt="${manga.attributes.title.en || "Unknown Title"}"
-              class="search-result-cover"
-            />
-            <div class="search-result-info">
-              <p class="search-result-title">${
-                manga.attributes.title.en || "Unknown Title"
-              }</p>
-              <p class="search-result-chapter">Latest Chapter: ${latestChapter}</p>
-              <button class="${buttonClass}" data-id="${
+  <div class="search-result">
+    <img
+      src="${DOMPurify.sanitize(coverUrl)}"
+      alt="${DOMPurify.sanitize(manga.attributes.title.en || "Unknown Title")}"
+      class="search-result-cover"
+    />
+    <div class="search-result-info">
+      <p class="search-result-title">${DOMPurify.sanitize(
+        manga.attributes.title.en || "Unknown Title"
+      )}</p>
+      <p class="search-result-chapter">Latest Chapter: ${DOMPurify.sanitize(
+        latestChapter
+      )}</p>
+      <button class="${buttonClass}" data-id="${DOMPurify.sanitize(
           manga.id
-        }">${buttonLabel}</button>
-            </div>
-          </div>
-        `;
+        )}">${buttonLabel}</button>
+    </div>
+  </div>
+`;
+
         return resultHTML;
       })
     ).then((htmlArray) => htmlArray.join(""));
@@ -1323,6 +1273,7 @@ document.addEventListener("DOMContentLoaded", () => {
             button.style.display = "none"; // Hide the button if no more results
           }
         } catch (error) {
+          console.error("Error loading more results:", error);
         } finally {
           // Hide the loading indicator
           loadingIndicator.style.display = "none";
@@ -1366,20 +1317,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================
 
   async function checkIfMangaInCollection(mangaId) {
-    const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-    if (!idToken) {
-      return false;
-    }
-
     try {
-      const response = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: idToken,
-        },
-      });
+      const response = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "GET",
+          credentials: "include", // Include cookies in the request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.ok) {
         const apiResponse = await response.json();
@@ -1404,7 +1352,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = document.querySelector(`.manga-card[data-id="${mangaId}"]`);
     if (card) {
       card.remove(); // Remove the card from the DOM
-    } else {
     }
   }
 
@@ -1413,26 +1360,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================
 
   async function removeMangaCard(mangaId) {
-    const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-    if (!idToken) {
-      return;
-    }
-
-    // Decode the idToken to extract the userId
-    const tokenParts = idToken.split(".");
-    const payload = JSON.parse(atob(tokenParts[1]));
-    const userId = payload.sub;
-
     try {
+      // Fetch the userId and credentials using the helper function
+      const userInfo = await getUserInfoAndCredentials();
+      if (!userInfo) {
+        throw new Error(
+          "Failed to retrieve user info. User might not be logged in."
+        );
+      }
+
+      const { userId } = userInfo;
+
       // Fetch the manga data from DynamoDB to get the coverUrl
-      const response = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: idToken,
-        },
-      });
+      const response = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "GET",
+          credentials: "include", // Include cookies in the request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -1441,9 +1390,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const apiResponse = await response.json();
-      const savedMangaCards = apiResponse.body
-        ? JSON.parse(apiResponse.body)
-        : [];
+      const savedMangaCards = Array.isArray(apiResponse.body)
+        ? apiResponse.body
+        : apiResponse; // Fallback to the raw response if body is not an array
       const mangaData = savedMangaCards.find(
         (manga) => manga.mangaId.S === mangaId
       );
@@ -1455,14 +1404,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const coverUrl = mangaData.coverUrl.S; // Get the cover URL
 
       // Call the Lambda function to remove the manga card and delete the S3 image
-      const deleteResponse = await fetch("API_ENDPOINT", {
-        // API Endpoint Placeholder
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, mangaId, coverUrl }),
-      });
+      const deleteResponse = await fetch(
+        "API_GATEWAY_URL", // Replace with your API Gateway URL
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId, mangaId, coverUrl }),
+          credentials: "include", // Include cookies in the request
+        }
+      );
 
       if (!deleteResponse.ok) {
         throw new Error(
@@ -1484,7 +1436,12 @@ document.addEventListener("DOMContentLoaded", () => {
         button.style.display = "block"; // Hide the button while removing
         updateButtonState(button, false, lastResults); // Update to "Add"
       }
-    } catch (error) {}
+    } catch (error) {
+      showNotification(
+        "Failed to remove manga card. Please try again.",
+        "error"
+      );
+    }
   }
 
   // Expose removeMangaCard to the global scope
@@ -1495,37 +1452,6 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsPopup.style.display = "none";
   }
 });
-
-// ============================
-//   Helper To AWS Credentials Initialization
-// ============================
-
-async function initializeAWSCredentials() {
-  const idToken = localStorage.getItem("idToken"); // (Disclaimer - This is not secure for production)
-  if (!idToken) {
-    alert("You must log in to access your saved manga cards.");
-    return null; // Exit early if no idToken is found
-  }
-
-  // Initialize AWS credentials
-  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: "Identity_Pool_ID", // Identity Pool ID
-    Logins: {
-      User_Pool_ID: idToken, // User Pool ID
-    },
-  });
-
-  // Refresh AWS credentials
-  return new Promise((resolve, reject) => {
-    AWS.config.credentials.refresh((error) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
-    });
-  });
-}
 
 // ============================
 //   User Icon Dropdown Functionality
@@ -1606,7 +1532,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // Create the tooltip element
           tooltip = document.createElement("div");
           tooltip.classList.add("manga-title-tooltip");
-          tooltip.textContent = fullTitle;
+          tooltip.textContent = DOMPurify.sanitize(fullTitle);
 
           // Append the tooltip to the parent container
           parentInfo.appendChild(tooltip);

@@ -2,8 +2,8 @@ import AWS from "aws-sdk";
 import fetch from "node-fetch";
 
 const s3 = new AWS.S3();
-const BUCKET_NAME = "BUCKET_NAME"; // Replace BUCKET_NAME with your S3 bucket name
-const IMAGE_SIZE_THRESHOLD = 4 * 1024 * 1024;
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const IMAGE_SIZE_THRESHOLD = 4 * 1024 * 1024; // 4 MB size threshold
 
 export const handler = async (event) => {
   const url = event.queryStringParameters?.url;
@@ -17,12 +17,13 @@ export const handler = async (event) => {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "OtakuStack/1.0 (https://otakustack.org)",
+        "User-Agent": "OtakuStack/1.0",
       },
       timeout: 5000,
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
       throw new Error(
         `Failed to fetch data from MangaDex API. Status: ${response.status}`
       );

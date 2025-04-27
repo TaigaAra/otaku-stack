@@ -2,9 +2,8 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 
-// Initialize AWS SDK v3 clients
-const dynamoDbClient = new DynamoDBClient({ region: "REGION" }); // Replace REGION with your AWS region
-const s3Client = new S3Client({ region: "REGION" }); // Replace REGION with your AWS region
+const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 exports.handler = async (event) => {
   try {
@@ -23,7 +22,7 @@ exports.handler = async (event) => {
 
     // Delete the item from DynamoDB
     const dynamoParams = {
-      TableName: "TABLE_NAME", // Replace TABLE_NAME with your DynamoDB table name
+      TableName: process.env.DYNAMODB_TABLE,
       Key: {
         userId,
         mangaId,
@@ -42,7 +41,7 @@ exports.handler = async (event) => {
 
     // Delete the corresponding image from S3
     const s3Params = {
-      Bucket: "BUCKET_NAME", // Replace BUCKET_NAME with your S3 bucket name
+      Bucket: process.env.S3_BUCKET_NAME,
       Key: s3Key,
     };
 
