@@ -7,7 +7,7 @@ This one exists because my friend exists (yes I have one.. he's mine -_-) and he
 So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the self glazing).
 
 ## Architecture
-![Screenshot](./screenshots/OtakuStack-Diagram.png)
+![Screenshot](./screenshots/OtakuStack-Diagram-UPDATE.png)
 
 ## Features
 - **Authenticated User Login & Persistent Data:** Secure sign-in through AWS Cognito ensures your collection stays yours. 
