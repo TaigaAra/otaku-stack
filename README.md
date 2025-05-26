@@ -8,8 +8,12 @@ This one exists because my friend exists (yes I have one.. he's mine -\_-) and h
 So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the self glazing).
 
 ## Architecture
+<<<<<<< HEAD
 
 ![Screenshot](./screenshots/OtakuStack-Diagram.png)
+=======
+![Screenshot](./screenshots/OtakuStack-Diagram-UPDATE.png)
+>>>>>>> ddb79e2588648521588578b7f5b3590279ca43bb
 
 ## Features
 
