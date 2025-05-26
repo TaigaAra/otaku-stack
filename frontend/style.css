@@ -456,6 +456,15 @@ body {
 /*    Sort and Search */
 /* ============================ */
 
+/* Reset Safari's default styles for dropdowns */
+select {
+  -webkit-appearance: none; /* Disable Safari's default dropdown styling */
+  -moz-appearance: none; /* Disable Firefox's default dropdown styling */
+  appearance: none; /* Standard property for modern browsers */
+  background: none; /* Remove default background */
+  border: none; /* Remove default border */
+  outline: none; /* Remove default outline */
+}
 /* Sort Collection */
 .sort-search-section {
   display: flex;
@@ -909,7 +918,7 @@ body {
   font-family: "Josefin Sans", sans-serif;
   border: 1px solid #ff5d5d;
   border-radius: 5px;
-  padding: 3px 20px;
+  padding: 3px 10px;
   font-size: 0.8rem;
   cursor: pointer;
   box-shadow: 1px 1px black;
@@ -966,6 +975,23 @@ body {
 }
 #delete-confirm-no:hover {
   background-color: #a50000;
+}
+
+/* Link To MangaDex */
+.list-link-btn {
+  background-color: #6f31ff;
+  color: #ffffff;
+  font-family: "Josefin Sans", sans-serif;
+  border: 1px solid #8e5dff;
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 1px 1px black;
+  transition: background-color 0.3s ease;
+}
+.list-link-btn:hover {
+  background-color: #5c16ff;
 }
 
 /* ============================ */

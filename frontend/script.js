@@ -513,6 +513,7 @@ function createMangaCard(mangaData) {
       <option value="Other">Other</option>
     </select>
     <button class="remove-btn list-remove-btn">X</button>
+    <button class="link-btn list-link-btn">#</button>
   `;
   const platformDropdown = readWhere.querySelector(".platform-name");
   if (platformDropdown) {
@@ -553,6 +554,16 @@ function createMangaCard(mangaData) {
       confirmModal.style.display = "none"; // Hide the modal
     };
   });
+
+  // Add event listener to the "Link" button
+  const linkButton = readWhere.querySelector(".link-btn");
+  if (linkButton) {
+    linkButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      const mangadexUrl = `https://mangadex.org/title/${mangaData.mangaId}`;
+      window.open(mangadexUrl, "_blank");
+    });
+  }
 
   return newCard;
 }
@@ -1318,27 +1329,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkIfMangaInCollection(mangaId) {
     try {
-      const response = await fetch(
-        "API_GATEWAY_URL", // Replace with your API Gateway URL
-        {
-          method: "GET",
-          credentials: "include", // Include cookies in the request
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // Get all manga cards currently displayed on the page
+      const mangaCards = document.querySelectorAll(".manga-card");
 
-      if (response.ok) {
-        const apiResponse = await response.json();
-        const savedMangaCards = apiResponse.body
-          ? JSON.parse(apiResponse.body)
-          : [];
-        return savedMangaCards.some((manga) => manga.mangaId.S === mangaId);
-      } else {
-        return false;
-      }
+      // Check if any card has the matching mangaId
+      return Array.from(mangaCards).some(
+        (card) => card.getAttribute("data-id") === mangaId
+      );
     } catch (error) {
+      console.error("Error checking manga in collection:", error);
       return false;
     }
   }
