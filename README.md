@@ -1,22 +1,15 @@
 # Otaku-Stack
 
 ## Overview
-
 Welcome to Otaku Stack! - https://otakustack.net — A fully serverless web app designed to let manga fans browse, search, and save manga from the MangaDex API.
 You may be thinking, aren't there a hundred other manga trackers out there? Nope... (don't look for them). Ok maybe. But this one?
 This one exists because my friend exists (yes I have one.. he's mine -\_-) and he "needed" a secure way to log the 1500th series he's read this week.
 So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the self glazing).
 
 ## Architecture
-<<<<<<< HEAD
-
-![Screenshot](./screenshots/OtakuStack-Diagram.png)
-=======
 ![Screenshot](./screenshots/OtakuStack-Diagram-UPDATE.png)
->>>>>>> ddb79e2588648521588578b7f5b3590279ca43bb
 
 ## Features
-
 - **Authenticated User Login & Persistent Data:** Secure sign-in through AWS Cognito ensures your collection stays yours.
 - **Personal Manga Collection Management:** Save titles you love, organize them in your own collection, and update attributes like your current chapter or where you're reading.
 - **Automatic Background Updates:** Manga details like chapter count and status (ongoing, hiatus, etc.) are updated regularly using scheduled Lambda functions.
@@ -26,11 +19,9 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 - **Custom Domain with CDN** Hosted on https://otakustack.net, delivered via CloudFront, with SSL via ACM and DNS powered by Route53.
 
 ## Screenshots
-
 ![Screenshot](./screenshots/OtakuStack-Homepage.png) ![Screenshot](./screenshots/OtakuStack-Collection.png)
 
 ## Project Structure
-
 <pre>otaku-stack/
 ├── frontend/
 │   ├── index.html
@@ -60,14 +51,13 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 └── README.md</pre>
 
 ## Implementation Details
-
-1.  ### Static Website Hosting
+1. ### Static Website Hosting
 
     Technology: S3, CloudFront, Route 53, ACM
 
     Details: The frontend is hosted on a static S3 bucket and served through a CloudFront distribution. HTTPS is enforced via an ACM certificate and custom domain https://otakustack.net managed by Route 53.
 
-2.  ### User Authentication & Authorization
+2. ### User Authentication & Authorization
 
     Technology: Amazon Cognito (User Pool + Identity Pool)
 
@@ -79,7 +69,7 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 
         Ensures that saved manga data is scoped per authenticated user.
 
-3.  ### Manga Collection Management
+3. ### Manga Collection Management
 
     Technology: API Gateway (REST & HTTP), Lambda, DynamoDB, S3
 
@@ -91,7 +81,7 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 
         Update Manga Info: Through REST API + update-read-chapter Lambda to change read chapter or platform.
 
-4.  ### MangaDex Search Integration
+4. ### MangaDex Search Integration
 
     Technology: Lambda, MangaDex API, API Gateway
 
@@ -101,7 +91,7 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 
         Temporary image data is stored in the mangadex-images bucket.
 
-5.  ### Automated Manga Metadata Updates
+5. ### Automated Manga Metadata Updates
 
     Technology: EventBridge (Scheduled), Lambda
 
@@ -109,7 +99,7 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 
         Two scheduled Lambdas (BatchUpdateMangaStatus and BatchUpdateMangaChapters) use cron and regular intervals to update manga status and latest chapter info in user collections.
 
-6.  ### Visitor-Facing Image Storage
+6. ### Visitor-Facing Image Storage
 
     Technology: S3
 
@@ -121,7 +111,7 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
 
         Temporary covers for search: Stored in mangadex-images.
 
-7.  ### Security and Monitoring
+7. ### Security and Monitoring
 
     Technology: IAM, CloudWatch, GuardDuty
 
@@ -134,5 +124,4 @@ So, naturally, I built a full-blown cloud-powered tracking platform (Ignore the 
         CloudWatch logs Lambda execution and helps track performance/errors.
 
 ## License
-
 This project is licensed under the [MIT License](./LICENSE).
